@@ -9,6 +9,7 @@ ADD https://astral.sh/uv/install.sh /uv-installer.sh
 # Run the installer then remove it
 RUN sh /uv-installer.sh && rm /uv-installer.sh
 
+
 RUN mkdir -p /data \
     && chmod 755 /data \
     && useradd -ms /bin/bash appuser \
