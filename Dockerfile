@@ -15,6 +15,9 @@ RUN mkdir -p /data \
     && useradd -ms /bin/bash appuser \
     && chown -R appuser:appuser /data
 
+COPY requirements.txt /app/
+RUN pip install --upgrade pip && pip install -r requirements.txt
+    
 # Ensure the installed binary is on the `PATH`
 ENV PATH="/root/.local/bin/:$PATH"
 
