@@ -1,8 +1,0 @@
-fastapi
-uvicorn
-requests
-scikit-learn
-sentence_transformers
-beautifulsoup4
-transcribe
-markdown
