@@ -6,12 +6,3 @@ sentence_transformers
 beautifulsoup4
 transcribe
 markdown
-datetime
-subprocess
-os
-json
-sqlite3
-re
-fastapi.middleware.cors
-fastapi.responses
-__builtins__
