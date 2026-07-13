@@ -17,8 +17,8 @@ node_modules/
 .env.*
 !.env.example
 
-# Generated data (keep sample fixtures out of VCS)
-data/git_repos/
+# Generated data (regenerate with datagen.py; not committed)
+data/
 
 # Editor / OS
 .vscode/
