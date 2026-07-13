@@ -29,24 +29,158 @@ AGENT_TOKEN = os.getenv("AGENT_TOKEN")
 
 _HTML = """<!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><title>TDS Automation Agent</title>
-<style>body{font-family:system-ui,sans-serif;max-width:720px;margin:3rem auto;padding:0 1rem;color:#1a1a1a}
-code{background:#f3f3f3;padding:.1rem .35rem;border-radius:4px}
-h1{margin-bottom:.2rem}.muted{color:#666}
-table{border-collapse:collapse;width:100%;margin-top:1rem}
-td,th{text-align:left;padding:.5rem;border-bottom:1px solid #eee}
-.ok{color:#137333}</style></head>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TDS Automation Agent</title>
+<style>
+:root{--bg:#0f172a;--card:#1e293b;--fg:#e2e8f0;--muted:#94a3b8;--accent:#38bdf8;--ok:#34d399;--err:#f87171}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--fg);line-height:1.5}
+.wrap{max-width:840px;margin:0 auto;padding:2rem 1.2rem 4rem}
+h1{margin:0 0 .25rem;font-size:1.6rem}
+h3{margin-top:0}
+.muted{color:var(--muted)}
+.badge{display:inline-block;background:rgba(52,211,153,.15);color:var(--ok);padding:.15rem .6rem;border-radius:999px;font-size:.78rem;margin-left:.5rem;vertical-align:middle}
+.card{background:var(--card);border:1px solid #334155;border-radius:12px;padding:1.2rem;margin-top:1.4rem}
+label{display:block;font-size:.85rem;color:var(--muted);margin:.8rem 0 .3rem}
+textarea,input[type=text]{width:100%;background:#0b1220;border:1px solid #334155;color:var(--fg);border-radius:8px;padding:.7rem;font-size:.95rem;font-family:inherit}
+textarea{min-height:92px;resize:vertical}
+.row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
+button{background:var(--accent);color:#06283d;border:0;border-radius:8px;padding:.7rem 1.2rem;font-weight:600;cursor:pointer;font-size:.95rem}
+button:disabled{opacity:.5;cursor:not-allowed}
+.chips{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.8rem}
+.chip{background:#0b1220;border:1px solid #334155;color:var(--fg);border-radius:999px;padding:.35rem .8rem;font-size:.82rem;cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+pre{background:#0b1220;border:1px solid #334155;border-radius:8px;padding:.9rem;overflow:auto;white-space:pre-wrap;word-break:break-word;font-size:.9rem;margin-top:1rem;display:none}
+input.tok{width:260px}
+.status{margin-top:.8rem;font-size:.85rem}
+.ok{color:var(--ok)}.err{color:var(--err)}
+.endpoint{font-family:ui-monospace,Menlo,monospace;color:var(--accent);font-size:.85rem;margin:.2rem 0}
+code{background:#0b1220;padding:.1rem .35rem;border-radius:4px}
+ul{line-height:1.9;padding-left:1.1rem}
+</style>
+</head>
 <body>
-<h1>TDS Automation Agent</h1>
-<p class="muted">LLM-powered task automation agent &mdash; online.</p>
-<p>Status: <span class="ok">&#10003; running</span></p>
-<table>
-<tr><th>Method</th><th>Endpoint</th><th>Purpose</th></tr>
-<tr><td>POST</td><td><code>/run?task=...</code></td><td>Plan &amp; execute a task</td></tr>
-<tr><td>GET</td><td><code>/read?path=...</code></td><td>Read a file under /data</td></tr>
-<tr><td>GET</td><td><code>/filter_csv?path=&column=&value=</code></td><td>Filter a CSV</td></tr>
-<tr><td>GET</td><td><code>/healthz</code></td><td>Liveness probe</td></tr>
-</table>
+<div class="wrap">
+  <h1>TDS Automation Agent <span class="badge" id="status">checking…</span></h1>
+  <p class="muted">Describe a task in plain English. The agent plans it with an LLM and runs the operations on <code>/data</code>.</p>
+
+  <div class="card">
+    <label for="task">Your task</label>
+    <textarea id="task" placeholder="e.g. Count how many Wednesdays are in /data/dates.txt"></textarea>
+    <div class="row" style="margin-top:.9rem">
+      <button id="run">Run task</button>
+      <input type="text" id="token" class="tok" placeholder="access token (optional)">
+    </div>
+    <div class="chips" id="examples"></div>
+    <div class="status" id="statusLine"></div>
+    <pre id="result"></pre>
+  </div>
+
+  <div class="card">
+    <h3>Supported operations</h3>
+    <p class="muted">Click any example chip above to load it. Full operation list:</p>
+    <ul id="ops" class="muted"></ul>
+  </div>
+
+  <div class="card">
+    <h3>API</h3>
+    <p class="muted">Same behaviour, programmatic access:</p>
+    <p class="endpoint">POST /run?task=&lt;task&gt;</p>
+    <p class="endpoint">GET&nbsp; /read?path=&lt;path&gt;</p>
+    <p class="endpoint">GET&nbsp; /filter_csv?path=&amp;column=&amp;value=</p>
+    <p class="endpoint">GET&nbsp; /healthz</p>
+  </div>
+</div>
+
+<script>
+const EXAMPLES = [
+  "Count how many Wednesdays are in /data/dates.txt",
+  "Sort the contacts in /data/contacts.json by last name and save to /data/contacts-sorted.json",
+  "Write the first line of the 10 most recent .log files in /data/logs to /data/logs-recent.txt",
+  "Index the Markdown files in /data/docs and save the index to /data/docs/index.json",
+  "Extract the sender's email address from /data/email.txt",
+  "Extract the credit card number from /data/credit_card.png",
+  "Find the most similar pair of comments in /data/comments.txt",
+  "Calculate the total sales of Gold tickets",
+  "Format /data/format.md with Prettier"
+];
+const OPS = [
+  "format_file — format format.md with Prettier",
+  "count_dates — count dates on a given weekday",
+  "sort_contacts — sort contacts.json by name",
+  "extract_logs — first lines of 10 newest logs",
+  "index_docs — index Markdown docs by H1",
+  "extract_email — sender email from email.txt",
+  "extract_credit_card — OCR card number from image",
+  "find_similar_comments — most similar comment pair",
+  "query_tickets — total sales for a ticket type",
+  "fetch_api — fetch a URL and save it",
+  "clone_git — clone a repo",
+  "run_sql_query — run SQL on a DB file",
+  "scrape_website — scrape a page to text",
+  "resize_image — compress/resize an image",
+  "transcribe_audio — transcribe audio to text",
+  "md_to_html — convert Markdown to HTML"
+];
+
+const taskEl = document.getElementById("task");
+const resultEl = document.getElementById("result");
+const statusLine = document.getElementById("statusLine");
+
+EXAMPLES.forEach(function (ex) {
+  const c = document.createElement("span");
+  c.className = "chip";
+  c.textContent = ex.length > 44 ? ex.slice(0, 44) + "…" : ex;
+  c.title = ex;
+  c.onclick = function () { taskEl.value = ex; };
+  document.getElementById("examples").appendChild(c);
+});
+OPS.forEach(function (op) {
+  const li = document.createElement("li");
+  li.textContent = op;
+  document.getElementById("ops").appendChild(li);
+});
+
+function checkHealth() {
+  fetch("/healthz").then(function (r) { return r.json(); }).then(function (j) {
+    const s = document.getElementById("status");
+    s.textContent = j.status === "ok" ? "online" : "degraded";
+    s.style.color = j.status === "ok" ? "var(--ok)" : "var(--err)";
+  }).catch(function () {
+    const s = document.getElementById("status");
+    s.textContent = "offline"; s.style.color = "var(--err)";
+  });
+}
+checkHealth();
+
+document.getElementById("run").onclick = function () {
+  const task = taskEl.value.trim();
+  if (!task) { statusLine.innerHTML = '<span class="err">Enter a task first.</span>'; return; }
+  const btn = document.getElementById("run");
+  btn.disabled = true;
+  statusLine.innerHTML = '<span class="muted">Planning &amp; running…</span>';
+  resultEl.style.display = "none";
+  const tok = document.getElementById("token").value.trim();
+  const url = "/run?task=" + encodeURIComponent(task) + (tok ? ("&token=" + encodeURIComponent(tok)) : "");
+  fetch(url, { method: "POST" })
+    .then(function (res) {
+      return res.json().then(function (data) {
+        resultEl.style.display = "block";
+        resultEl.textContent = JSON.stringify(data, null, 2);
+        if (data.result !== undefined) statusLine.innerHTML = '<span class="ok">Done (HTTP ' + res.status + ')</span>';
+        else statusLine.innerHTML = '<span class="err">Error (HTTP ' + res.status + ')</span>';
+      });
+    })
+    .catch(function (e) {
+      resultEl.style.display = "block";
+      resultEl.textContent = String(e);
+      statusLine.innerHTML = '<span class="err">Request failed</span>';
+    })
+    .finally(function () { btn.disabled = false; });
+};
+</script>
 </body></html>"""
 
 
