@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e ".[dev]"
+      - name: Lint (ruff)
+        run: ruff check app.py core agent operations tests
+      - name: Format check (black)
+        run: black --check app.py core agent operations tests
+      - name: Type check (mypy)
+        run: mypy app.py core agent operations
+
+  test:
+    runs-on: ubuntu-latest
+    env:
+      AIPROXY_TOKEN: test-token
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e ".[dev]"
+      - name: Run tests
+        run: pytest -q

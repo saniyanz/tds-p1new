@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+
+# Dependencies
+node_modules/
+
+# Secrets / local config
+.env
+.env.*
+!.env.example
+
+# Generated data (keep sample fixtures out of VCS)
+data/git_repos/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
