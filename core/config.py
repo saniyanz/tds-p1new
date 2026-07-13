@@ -28,6 +28,7 @@ class Settings(BaseModel):
     log_level: str = "INFO"
     enable_llm_cache: bool = True
     max_llm_retries: int = 3
+    tls_enabled: bool = False
 
     @model_validator(mode="after")
     def _resolve_paths(self) -> Settings:
@@ -61,6 +62,8 @@ def _build_settings() -> Settings:
         enable_llm_cache=os.getenv("ENABLE_LLM_CACHE", "true").lower()
         in ("1", "true", "yes", "on"),
         max_llm_retries=int(os.getenv("MAX_LLM_RETRIES", "3")),
+        tls_enabled=os.getenv("TLS_ENABLED", "false").lower()
+        in ("1", "true", "yes", "on"),
     )
 
 

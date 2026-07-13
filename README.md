@@ -81,5 +81,6 @@ python app.py                 # http://localhost:8000  (or LAN IP)
 - To protect a **public** deployment, set `AGENT_TOKEN` (off by default so the
   evaluator can call `/run` without a token). Anyone with the URL can otherwise
   consume your `AIPROXY_TOKEN` quota.
-- `cert.pem`/`key.pem` are a self-signed dev cert; for production use the
-  platform's managed TLS instead.
+- `cert.pem`/`key.pem` are a self-signed dev cert; the app serves plain HTTP by
+  default and lets the platform terminate TLS. Set `TLS_ENABLED=true` only for
+  local HTTPS testing.

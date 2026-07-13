@@ -141,5 +141,6 @@ def healthz():
 if __name__ == "__main__":
     cert = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cert.pem")
     key = os.path.join(os.path.dirname(os.path.abspath(__file__)), "key.pem")
-    ssl_context = (cert, key) if (os.path.exists(cert) and os.path.exists(key)) else None
+    use_tls = settings.tls_enabled and os.path.exists(cert) and os.path.exists(key)
+    ssl_context = (cert, key) if use_tls else None
     app.run(debug=False, host=settings.host, port=settings.port, ssl_context=ssl_context)

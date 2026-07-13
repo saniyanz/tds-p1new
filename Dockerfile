@@ -27,5 +27,7 @@ USER agent
 
 EXPOSE 8000
 
-# Reads AIPROXY_TOKEN from the environment; supply it at runtime (not baked in).
-CMD ["python", "app.py"]
+# Reads AIPROXY_TOKEN (and optional AGENT_TOKEN) from the environment; supply
+# them at runtime (not baked in). Serves plain HTTP; TLS is terminated by the
+# platform. Honours the platform's $PORT (defaults to 8000 locally).
+CMD ["sh", "-c", "gunicorn wsgi:app --bind 0.0.0.0:${PORT:-8000} --workers 1"]
