@@ -44,12 +44,42 @@ ruff check app.py core agent operations tests
 pytest -q
 ```
 
-## Docker
+## Deployment
+
+The app binds to `HOST`/`PORT` from the environment (defaults `0.0.0.0:8000`)
+and serves plain HTTP when `cert.pem`/`key.pem` are absent, so it works behind
+any platform's TLS terminator.
+
+### Render (Docker, free tier — easiest)
+
+1. Push this repo to GitHub (done: `saniyanz/tds-p1new`).
+2. Go to https://render.com → **New** → **Web Service** → connect the repo.
+3. Environment: **Docker**; Branch: `main`.
+4. Add environment variable `AIPROXY_TOKEN` (your real token). Optionally set
+   `AGENT_TOKEN` to require `?token=` on every request.
+5. Deploy. Render gives you a public URL like `https://tds-agent.onrender.com`.
+6. Verify: open the URL (landing page) and `https://<url>/healthz`.
+
+> Render's free tier spins down after inactivity; the first request may be slow.
+
+### Other platforms
+
+- **Railway / Fly.io**: also Docker-native; set `AIPROXY_TOKEN` as a secret.
+- **PythonAnywhere / Heroku**: use the `Procfile` (`gunicorn wsgi:app`).
+
+### Local / LAN
 
 ```bash
-docker build -t tds-agent .
-docker run -e AIPROXY_TOKEN=... -p 8000:8000 tds-agent
+pip install -r requirements.txt
+python app.py                 # http://localhost:8000  (or LAN IP)
 ```
 
-> **Security note:** never commit `.env`. The token is loaded from the
-> environment at runtime.
+## Security
+
+- Never commit `.env` or your token. The token is read from the environment.
+- The agent writes only under `/data` and rejects path traversal / deletion.
+- To protect a **public** deployment, set `AGENT_TOKEN` (off by default so the
+  evaluator can call `/run` without a token). Anyone with the URL can otherwise
+  consume your `AIPROXY_TOKEN` quota.
+- `cert.pem`/`key.pem` are a self-signed dev cert; for production use the
+  platform's managed TLS instead.

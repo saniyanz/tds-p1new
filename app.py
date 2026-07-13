@@ -4,6 +4,7 @@ Endpoints (preserved for evaluation compatibility):
 - POST /run?task=...      plan + execute a natural-language task
 - GET  /read?path=...     read a file under /data
 - GET  /filter_csv?...    filter a CSV under /data by column/value
+- GET  /                  public landing/status page
 - GET  /healthz           liveness probe
 """
 from __future__ import annotations
@@ -20,6 +21,52 @@ from flask import Flask, Response, jsonify, request
 logger = get_logger("api", settings.log_level)
 
 app = Flask(__name__)
+
+# Optional shared-secret auth. If AGENT_TOKEN is set in the environment, every
+# /run, /read and /filter_csv request must include ?token=... or an
+# "Authorization: Bearer ..." header. Leave it unset for open (eval) access.
+AGENT_TOKEN = os.getenv("AGENT_TOKEN")
+
+_HTML = """<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>TDS Automation Agent</title>
+<style>body{font-family:system-ui,sans-serif;max-width:720px;margin:3rem auto;padding:0 1rem;color:#1a1a1a}
+code{background:#f3f3f3;padding:.1rem .35rem;border-radius:4px}
+h1{margin-bottom:.2rem}.muted{color:#666}
+table{border-collapse:collapse;width:100%;margin-top:1rem}
+td,th{text-align:left;padding:.5rem;border-bottom:1px solid #eee}
+.ok{color:#137333}</style></head>
+<body>
+<h1>TDS Automation Agent</h1>
+<p class="muted">LLM-powered task automation agent &mdash; online.</p>
+<p>Status: <span class="ok">&#10003; running</span></p>
+<table>
+<tr><th>Method</th><th>Endpoint</th><th>Purpose</th></tr>
+<tr><td>POST</td><td><code>/run?task=...</code></td><td>Plan &amp; execute a task</td></tr>
+<tr><td>GET</td><td><code>/read?path=...</code></td><td>Read a file under /data</td></tr>
+<tr><td>GET</td><td><code>/filter_csv?path=&column=&value=</code></td><td>Filter a CSV</td></tr>
+<tr><td>GET</td><td><code>/healthz</code></td><td>Liveness probe</td></tr>
+</table>
+</body></html>"""
+
+
+@app.route("/", methods=["GET"])
+def index():
+    return Response(_HTML, mimetype="text/html"), 200
+
+
+@app.before_request
+def _require_token():
+    if not AGENT_TOKEN:
+        return None
+    if request.path in ("/", "/healthz"):
+        return None
+    provided = request.args.get("token")
+    auth = request.headers.get("Authorization", "")
+    if not provided and auth.startswith("Bearer "):
+        provided = auth[7:]
+    if provided != AGENT_TOKEN:
+        return jsonify({"error": "unauthorized"}), 401
 
 
 @app.route("/run", methods=["POST"])
