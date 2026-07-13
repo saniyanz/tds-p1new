@@ -55,9 +55,14 @@ any platform's TLS terminator.
 1. Push this repo to GitHub (done: `saniyanz/tds-p1new`).
 2. Go to https://render.com → **New** → **Web Service** → connect the repo.
 3. Environment: **Docker**; Branch: `main`.
-4. Add environment variable `AIPROXY_TOKEN` (your real token). Optionally set
-   `AGENT_TOKEN` to require `?token=` on every request.
+4. Add environment variables:
+   - `AIPROXY_TOKEN` (your real token) — **required**.
+   - `DATAGEN_EMAIL` — your IITM email; used to generate `/data` fixtures at
+     startup (defaults to `23f2002592@ds.study.iitm.ac.in`).
+   - `AGENT_TOKEN` (optional) — require `?token=` on every request.
 5. Deploy. Render gives you a public URL like `https://tds-agent.onrender.com`.
+   The container runs `datagen.py` on startup to populate `/data`, then serves
+   from `DATA_DIR=/data`, so the agent is ready immediately.
 6. Verify: open the URL (landing page) and `https://<url>/healthz`.
 
 > Render's free tier spins down after inactivity; the first request may be slow.

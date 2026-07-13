@@ -23,11 +23,18 @@ COPY . .
 
 # Run as a non-root user.
 RUN useradd --create-home --uid 10001 agent && chown -R agent:agent /app
+
+# The agent operates on /data (TDS convention). Create it and give the agent
+# ownership so it can generate + write fixtures there at runtime.
+RUN mkdir -p /data && chown agent:agent /data
 USER agent
+
+ENV DATA_DIR=/data
+ENV DATAGEN_EMAIL=23f2002592@ds.study.iitm.ac.in
 
 EXPOSE 8000
 
-# Reads AIPROXY_TOKEN (and optional AGENT_TOKEN) from the environment; supply
-# them at runtime (not baked in). Serves plain HTTP; TLS is terminated by the
-# platform. Honours the platform's $PORT (defaults to 8000 locally).
-CMD ["sh", "-c", "gunicorn wsgi:app --bind 0.0.0.0:${PORT:-8000} --workers 1"]
+# Generate the /data fixtures with datagen.py, then serve. AIPROXY_TOKEN (and
+# optional AGENT_TOKEN) come from the environment. Plain HTTP; TLS is terminated
+# by the platform. Honours the platform's $PORT (defaults to 8000 locally).
+CMD ["sh", "-c", "python datagen.py ${DATAGEN_EMAIL} && gunicorn wsgi:app --bind 0.0.0.0:${PORT:-8000} --workers 1"]
